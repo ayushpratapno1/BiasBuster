@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token }}">
     <title>Results — BiasBusters</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -24,6 +25,7 @@
             --cyan: #06b6d4;
             --red: #ef4444;
             --green: #10b981;
+            --yellow: #eab308;
             --indigo-glow: rgba(99, 102, 241, 0.35);
             --cyan-glow: rgba(6, 182, 212, 0.25);
             --radius: 20px;
@@ -31,25 +33,8 @@
         }
 
         html { scroll-behavior: smooth; }
-
-        body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-            background: var(--bg-primary);
-            color: var(--text-primary);
-            min-height: 100vh;
-            overflow-x: hidden;
-            line-height: 1.6;
-        }
-
-        body::before {
-            content: '';
-            position: fixed;
-            inset: 0;
-            background: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
-            background-size: 32px 32px;
-            pointer-events: none;
-            z-index: 0;
-        }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background: var(--bg-primary); color: var(--text-primary); min-height: 100vh; overflow-x: hidden; line-height: 1.6; }
+        body::before { content: ''; position: fixed; inset: 0; background: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0); background-size: 32px 32px; pointer-events: none; z-index: 0; }
 
         .orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.45; pointer-events: none; z-index: 0; }
         .orb-1 { width: 550px; height: 550px; background: radial-gradient(circle, var(--indigo-glow), transparent 70%); top: -12%; right: -5%; animation: orbF1 18s ease-in-out infinite; }
@@ -57,206 +42,130 @@
         @keyframes orbF1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-40px,30px) scale(1.08)} }
         @keyframes orbF2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-20px) scale(1.05)} }
 
-        .container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+        .container { max-width: 880px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
 
         /* ── Nav ── */
-        nav {
-            position: sticky; top: 0; z-index: 100;
-            padding: 16px 24px;
-            background: rgba(6, 6, 15, 0.7);
-            backdrop-filter: blur(24px);
-            border-bottom: 1px solid var(--border);
-        }
+        nav { position: sticky; top: 0; z-index: 100; padding: 16px 24px; background: rgba(6, 6, 15, 0.7); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border); }
         .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
-        .nav-brand {
-            display: flex; align-items: center; gap: 10px;
-            font-weight: 700; font-size: 1.15rem;
-            text-decoration: none; color: var(--text-primary);
-        }
+        .nav-brand { display: flex; align-items: center; gap: 10px; font-weight: 700; font-size: 1.15rem; text-decoration: none; color: var(--text-primary); }
         .nav-brand svg { flex-shrink: 0; }
-        .btn-ghost {
-            display: inline-flex; align-items: center; gap: 6px;
-            padding: 8px 16px; font-family: 'Inter', sans-serif;
-            font-size: 0.82rem; font-weight: 600;
-            color: var(--text-secondary); background: var(--surface);
-            border: 1px solid var(--border); border-radius: 10px;
-            cursor: pointer; text-decoration: none; transition: all 0.25s;
-        }
+        .nav-actions { display: flex; gap: 10px; }
+        .btn-ghost { display: inline-flex; align-items: center; gap: 6px; padding: 8px 16px; font-family: 'Inter', sans-serif; font-size: 0.82rem; font-weight: 600; color: var(--text-secondary); background: var(--surface); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; text-decoration: none; transition: all 0.25s; }
         .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); background: var(--surface-hover); }
 
         /* ── Page Header ── */
         .page-header { padding: 48px 0 12px; text-align: center; }
-        .page-header h1 {
-            font-size: clamp(1.6rem, 4vw, 2.2rem);
-            font-weight: 800; letter-spacing: -0.02em;
-            background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #06b6d4 100%);
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
+        .page-header h1 { font-size: clamp(1.6rem, 4vw, 2.2rem); font-weight: 800; letter-spacing: -0.02em; background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #06b6d4 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
         .page-header p { color: var(--text-muted); font-size: 0.92rem; margin-top: 8px; }
 
         /* ── Glass Card ── */
-        .glass {
-            background: var(--surface); backdrop-filter: blur(40px);
-            border: 1px solid var(--border); border-radius: var(--radius);
-            padding: 32px; transition: border-color 0.3s, box-shadow 0.3s;
-        }
+        .glass { background: var(--surface); backdrop-filter: blur(40px); border: 1px solid var(--border); border-radius: var(--radius); padding: 32px; transition: border-color 0.3s, box-shadow 0.3s; }
         .glass:hover { border-color: var(--border-hover); }
 
+        /* ── Overview Stats ── */
+        .overview-stats { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; padding: 8px 0 20px; }
+        .ov-stat { display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 100px; font-size: 0.78rem; color: var(--text-secondary); font-weight: 500; }
+        .ov-stat strong { color: var(--text-primary); font-weight: 700; }
+
         /* ── Metric Cards ── */
-        .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 28px 0; }
+        .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 8px 0 28px; }
         @media (max-width: 640px) { .metrics { grid-template-columns: 1fr; } }
-
-        .metric-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 16px; padding: 24px; text-align: center;
-            transition: all 0.3s;
-        }
+        .metric-card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 24px; text-align: center; transition: all 0.3s; }
         .metric-card:hover { border-color: var(--border-hover); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
-
-        .metric-label {
-            font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
-            letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 10px;
-            display: flex; align-items: center; justify-content: center; gap: 6px;
-        }
-        .metric-value {
-            font-size: 1.35rem; font-weight: 700; color: var(--text-primary);
-            word-break: break-word;
-        }
+        .metric-label { font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 10px; display: flex; align-items: center; justify-content: center; gap: 6px; }
+        .metric-value { font-size: 1.35rem; font-weight: 700; color: var(--text-primary); word-break: break-word; }
 
         .metric-card.score-card { border-color: rgba(99, 102, 241, 0.2); }
-        .metric-card.score-card .metric-value {
-            font-size: 2.2rem; font-weight: 900;
-            background: linear-gradient(135deg, var(--indigo), var(--cyan));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
-        }
-        .score-bar-track {
-            width: 100%; height: 6px; background: rgba(255,255,255,0.06);
-            border-radius: 3px; margin-top: 14px; overflow: hidden;
-        }
-        .score-bar-fill {
-            height: 100%; border-radius: 3px;
-            background: linear-gradient(90deg, var(--indigo), var(--cyan));
-            transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
-        }
+        .metric-card.score-card .metric-value { font-size: 2.2rem; font-weight: 900; background: linear-gradient(135deg, var(--indigo), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
+        .score-bar-track { width: 100%; height: 6px; background: rgba(255,255,255,0.06); border-radius: 3px; margin-top: 14px; overflow: hidden; }
+        .score-bar-fill { height: 100%; border-radius: 3px; background: linear-gradient(90deg, var(--indigo), var(--cyan)); transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1); }
 
         /* ── Alert Banner ── */
-        .alert {
-            display: flex; align-items: center; gap: 14px;
-            padding: 18px 24px; border-radius: 14px;
-            font-weight: 600; font-size: 0.95rem;
-        }
-        .alert-icon {
-            width: 44px; height: 44px; border-radius: 12px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
+        .alert { display: flex; align-items: center; gap: 14px; padding: 18px 24px; border-radius: 14px; font-weight: 600; font-size: 0.95rem; }
+        .alert-icon { width: 44px; height: 44px; border-radius: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .alert-body p { margin-top: 4px; font-weight: 400; font-size: 0.85rem; opacity: 0.8; }
-
-        .alert-danger {
-            background: rgba(239, 68, 68, 0.06);
-            border: 1px solid rgba(239, 68, 68, 0.18);
-            color: var(--red);
-        }
+        .alert-danger { background: rgba(239, 68, 68, 0.06); border: 1px solid rgba(239, 68, 68, 0.18); color: var(--red); }
         .alert-danger .alert-icon { background: rgba(239, 68, 68, 0.12); }
-
-        .alert-success {
-            background: rgba(16, 185, 129, 0.06);
-            border: 1px solid rgba(16, 185, 129, 0.18);
-            color: var(--green);
-        }
+        .alert-success { background: rgba(16, 185, 129, 0.06); border: 1px solid rgba(16, 185, 129, 0.18); color: var(--green); }
         .alert-success .alert-icon { background: rgba(16, 185, 129, 0.12); }
+
+        /* ── Insights Section ── */
+        .insights-section { margin-top: 28px; }
+        .section-heading { display: flex; align-items: center; gap: 10px; font-size: 1.05rem; font-weight: 700; margin-bottom: 16px; }
+        .section-heading svg { opacity: 0.5; }
+        .insight-list { display: flex; flex-direction: column; gap: 10px; }
+        .insight-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 14px; transition: all 0.25s; font-size: 0.9rem; color: var(--text-secondary); line-height: 1.6; }
+        .insight-item:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.035); }
+        .insight-num { width: 28px; height: 28px; border-radius: 8px; background: rgba(99, 102, 241, 0.12); color: var(--indigo); display: flex; align-items: center; justify-content: center; font-size: 0.75rem; font-weight: 700; flex-shrink: 0; margin-top: 1px; }
 
         /* ── Group Results ── */
         .group-results { margin-top: 28px; }
-        .group-results-title {
-            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
-            letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 14px;
-        }
-        .group-item {
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 14px 18px;
-            background: rgba(255,255,255,0.02);
-            border-radius: 10px;
-            margin-bottom: 6px;
-            transition: background 0.2s;
-        }
+        .group-results-title { font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 14px; }
+        .group-item { display: flex; align-items: center; justify-content: space-between; padding: 14px 18px; background: rgba(255,255,255,0.02); border-radius: 10px; margin-bottom: 6px; transition: background 0.2s; }
         .group-item:hover { background: rgba(255,255,255,0.04); }
         .group-key { font-weight: 600; font-size: 0.92rem; }
-        .group-val {
-            font-family: 'Inter', monospace; font-weight: 700;
-            font-size: 0.95rem; color: var(--cyan);
-        }
+        .group-val { font-family: 'Inter', monospace; font-weight: 700; font-size: 0.95rem; color: var(--cyan); }
 
         /* ── Chart Section ── */
         .chart-section { margin-top: 28px; }
-        .section-heading {
-            display: flex; align-items: center; gap: 10px;
-            font-size: 1.05rem; font-weight: 700; margin-bottom: 20px;
-        }
-        .section-heading svg { opacity: 0.5; }
-        .chart-wrap {
-            background: rgba(255,255,255,0.015); border-radius: 14px;
-            padding: 24px; position: relative;
-        }
+        .chart-wrap { background: rgba(255,255,255,0.015); border-radius: 14px; padding: 24px; position: relative; }
+
+        /* ── Action Bar ── */
+        .action-bar { display: flex; gap: 12px; margin-top: 28px; flex-wrap: wrap; }
+        @media (max-width: 480px) { .action-bar { flex-direction: column; } }
+        .btn-action { display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 12px 22px; font-family: 'Inter', sans-serif; font-size: 0.85rem; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; transition: all 0.3s; border: 1px solid var(--border); flex: 1; min-width: 0; }
+        .btn-action .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.3); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .btn-simulate { background: rgba(139, 92, 246, 0.1); border-color: rgba(139, 92, 246, 0.2); color: #a78bfa; }
+        .btn-simulate:hover { background: rgba(139, 92, 246, 0.18); border-color: rgba(139, 92, 246, 0.35); transform: translateY(-2px); }
+        .btn-download { background: rgba(6, 182, 212, 0.1); border-color: rgba(6, 182, 212, 0.2); color: #22d3ee; }
+        .btn-download:hover { background: rgba(6, 182, 212, 0.18); border-color: rgba(6, 182, 212, 0.35); transform: translateY(-2px); }
+
+        /* ── Simulation Section ── */
+        .sim-section { display: none; margin-top: 28px; }
+        .sim-section.visible { display: block; animation: fadeInUp 0.5s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .sim-comparison { display: grid; grid-template-columns: 1fr auto 1fr; gap: 16px; align-items: center; margin-bottom: 20px; }
+        @media (max-width: 520px) { .sim-comparison { grid-template-columns: 1fr; } .sim-arrow { transform: rotate(90deg); } }
+        .sim-card { background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 14px; padding: 24px; text-align: center; }
+        .sim-card-label { font-size: 0.7rem; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; color: var(--text-muted); margin-bottom: 8px; }
+        .sim-card-value { font-size: 1.8rem; font-weight: 800; }
+        .sim-card.original .sim-card-value { color: var(--red); }
+        .sim-card.simulated { border-color: rgba(16, 185, 129, 0.2); }
+        .sim-card.simulated .sim-card-value { color: var(--green); }
+        .sim-arrow { display: flex; align-items: center; justify-content: center; color: var(--text-muted); }
+        .sim-message { padding: 16px 20px; background: rgba(139, 92, 246, 0.06); border: 1px solid rgba(139, 92, 246, 0.15); border-radius: 12px; font-size: 0.87rem; color: var(--text-secondary); line-height: 1.6; }
 
         /* ── Suggestions ── */
         .suggestions { margin-top: 28px; }
         .suggestion-list { display: flex; flex-direction: column; gap: 10px; }
-        .suggestion-item {
-            display: flex; align-items: flex-start; gap: 14px;
-            padding: 16px 20px;
-            background: rgba(255,255,255,0.02);
-            border: 1px solid var(--border);
-            border-radius: 14px;
-            transition: all 0.25s;
-        }
+        .suggestion-item { display: flex; align-items: flex-start; gap: 14px; padding: 16px 20px; background: rgba(255,255,255,0.02); border: 1px solid var(--border); border-radius: 14px; transition: all 0.25s; }
         .suggestion-item:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.035); }
-        .suggestion-icon {
-            width: 36px; height: 36px; border-radius: 10px;
-            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-        }
+        .suggestion-icon { width: 36px; height: 36px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
         .suggestion-icon.tip { background: rgba(234, 179, 8, 0.1); }
         .suggestion-icon.ok { background: rgba(16, 185, 129, 0.1); }
         .suggestion-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; padding-top: 6px; }
 
         /* ── Conclusion ── */
-        .conclusion {
-            margin-top: 28px; text-align: center;
-            padding: 32px; border-radius: 16px;
-        }
-        .conclusion-biased {
-            background: linear-gradient(135deg, rgba(239,68,68,0.05), rgba(239,68,68,0.02));
-            border: 1px solid rgba(239,68,68,0.15);
-        }
-        .conclusion-fair {
-            background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(16,185,129,0.02));
-            border: 1px solid rgba(16,185,129,0.15);
-        }
+        .conclusion { margin-top: 28px; text-align: center; padding: 32px; border-radius: 16px; }
+        .conclusion-biased { background: linear-gradient(135deg, rgba(239,68,68,0.05), rgba(239,68,68,0.02)); border: 1px solid rgba(239,68,68,0.15); }
+        .conclusion-fair { background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(16,185,129,0.02)); border: 1px solid rgba(16,185,129,0.15); }
         .conclusion h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
         .conclusion p { font-size: 0.9rem; color: var(--text-secondary); max-width: 500px; margin: 0 auto; }
         .conclusion-biased h3 { color: var(--red); }
         .conclusion-fair h3 { color: var(--green); }
 
         /* ── Footer ── */
-        footer {
-            text-align: center; padding: 48px 24px 40px;
-            border-top: 1px solid var(--border); margin-top: 48px;
-            position: relative; z-index: 1;
-        }
+        footer { text-align: center; padding: 48px 24px 40px; border-top: 1px solid var(--border); margin-top: 48px; position: relative; z-index: 1; }
         footer p { font-size: 0.8rem; color: var(--text-muted); }
-        footer span {
-            background: linear-gradient(135deg, var(--indigo), var(--cyan));
-            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;
-        }
+        footer span { background: linear-gradient(135deg, var(--indigo), var(--cyan)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700; }
 
         /* ── Animations ── */
-        @keyframes fadeInUp {
-            from { opacity: 0; transform: translateY(24px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(24px); } to { opacity: 1; transform: translateY(0); } }
         .anim { opacity: 0; animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
-        .d1 { animation-delay: .05s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .19s; }
-        .d4 { animation-delay: .26s; } .d5 { animation-delay: .33s; } .d6 { animation-delay: .40s; }
-        .d7 { animation-delay: .47s; } .d8 { animation-delay: .54s; } .d9 { animation-delay: .61s; }
+        .d1{animation-delay:.05s} .d2{animation-delay:.12s} .d3{animation-delay:.19s}
+        .d4{animation-delay:.26s} .d5{animation-delay:.33s} .d6{animation-delay:.40s}
+        .d7{animation-delay:.47s} .d8{animation-delay:.54s} .d9{animation-delay:.61s}
+        .d10{animation-delay:.68s} .d11{animation-delay:.75s}
     </style>
 </head>
 <body>
@@ -268,11 +177,7 @@
 <nav>
     <div class="nav-inner">
         <a href="/" class="nav-brand">
-            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
-                <rect width="28" height="28" rx="8" fill="url(#g1)"/>
-                <path d="M8 14.5L12 18.5L20 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-                <defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
-            </svg>
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><rect width="28" height="28" rx="8" fill="url(#g1)"/><path d="M8 14.5L12 18.5L20 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/><defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs></svg>
             BiasBusters
         </a>
         <a href="/" class="btn-ghost">
@@ -290,25 +195,48 @@
         <p>Here's what BiasBusters found in your dataset</p>
     </div>
 
+    <!-- Dataset Overview Pills -->
+    <div class="overview-stats anim d2">
+        <div class="ov-stat">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+            <strong>{{ summary.total_rows }}</strong> rows
+        </div>
+        <div class="ov-stat">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="2" x2="12" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+            <strong>{{ summary.total_cols }}</strong> columns
+        </div>
+        {% if summary.total_missing > 0 %}
+        <div class="ov-stat" style="border-color: rgba(234,179,8,0.25); color: var(--yellow);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            <strong>{{ summary.total_missing }}</strong> missing values
+        </div>
+        {% else %}
+        <div class="ov-stat" style="border-color: rgba(16,185,129,0.25); color: var(--green);">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+            No missing values
+        </div>
+        {% endif %}
+    </div>
+
     <!-- Metric Cards -->
     <div class="metrics">
-        <div class="metric-card anim d2">
+        <div class="metric-card anim d3">
             <div class="metric-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
                 Sensitive Column
             </div>
             <div class="metric-value">{{ sensitive }}</div>
         </div>
-        <div class="metric-card anim d3">
+        <div class="metric-card anim d4">
             <div class="metric-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
                 Target Column
             </div>
             <div class="metric-value">{{ target }}</div>
         </div>
-        <div class="metric-card score-card anim d4">
+        <div class="metric-card score-card anim d5">
             <div class="metric-label">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
                 Fairness Score
             </div>
             <div class="metric-value" id="score-display">{{ fairness_score }}%</div>
@@ -319,7 +247,7 @@
     </div>
 
     <!-- Bias Alert -->
-    <div class="anim d5">
+    <div class="anim d6">
         {% if bias_detected %}
         <div class="alert alert-danger">
             <div class="alert-icon">
@@ -343,9 +271,24 @@
         {% endif %}
     </div>
 
-    <!-- Group Results + Chart -->
-    <div class="glass anim d6" style="margin-top: 28px;">
+    <!-- Advanced Insights -->
+    <div class="insights-section anim d7">
+        <div class="section-heading">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
+            Advanced Insights
+        </div>
+        <div class="insight-list">
+            {% for insight in insights %}
+            <div class="insight-item">
+                <div class="insight-num">{{ forloop.counter }}</div>
+                <span>{{ insight }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
 
+    <!-- Group Results + Chart -->
+    <div class="glass anim d8" style="margin-top: 28px;">
         <div class="group-results">
             <div class="group-results-title">Group Outcome Rates</div>
             {% for key, value in result.items %}
@@ -367,8 +310,44 @@
         </div>
     </div>
 
+    <!-- Action Buttons -->
+    <div class="action-bar anim d9">
+        <button class="btn-action btn-simulate" id="sim-btn" onclick="runSimulation()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+            Simulate Without Sensitive Attribute
+        </button>
+        <button class="btn-action btn-download" id="dl-btn" onclick="downloadReport()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+            Download Report
+        </button>
+    </div>
+
+    <!-- Simulation Results (hidden by default) -->
+    <div class="sim-section" id="sim-section">
+        <div class="glass">
+            <div class="section-heading" style="margin-bottom: 20px;">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+                Bias Simulation — Before vs After
+            </div>
+            <div class="sim-comparison">
+                <div class="sim-card original">
+                    <div class="sim-card-label">With "{{ sensitive }}"</div>
+                    <div class="sim-card-value" id="sim-orig-score">—</div>
+                </div>
+                <div class="sim-arrow">
+                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+                </div>
+                <div class="sim-card simulated">
+                    <div class="sim-card-label">Without "{{ sensitive }}"</div>
+                    <div class="sim-card-value" id="sim-new-score">—</div>
+                </div>
+            </div>
+            <div class="sim-message" id="sim-message"></div>
+        </div>
+    </div>
+
     <!-- Suggestions -->
-    <div class="suggestions anim d7">
+    <div class="suggestions anim d10">
         <div class="section-heading" style="margin-bottom: 16px;">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
             Recommendations
@@ -392,7 +371,7 @@
     </div>
 
     <!-- Conclusion -->
-    <div class="anim d8">
+    <div class="anim d11">
         {% if bias_detected %}
         <div class="conclusion conclusion-biased">
             <h3>Action Required</h3>
@@ -408,30 +387,33 @@
 
 </div>
 
-<!-- Footer -->
-<footer class="anim d9">
+<footer class="anim d11">
     <p>Built with purpose by team <span>Fairlytics</span></p>
 </footer>
 
 <script>
-    const rawData  = JSON.parse('{{ result_json|escapejs }}');
-    const isBiased = JSON.parse('{{ bias_detected|yesno:"true,false"|escapejs }}');
-    const labels   = Object.keys(rawData);
-    const values   = Object.values(rawData);
+    /* ── Shared helpers ── */
+    const csrfToken = document.querySelector('meta[name="csrf-token"]').content;
 
-    const barColors = isBiased
-        ? values.map(() => 'rgba(239, 68, 68, 0.65)')
-        : values.map(() => 'rgba(16, 185, 129, 0.65)');
-    const borderColors = isBiased
-        ? values.map(() => 'rgba(239, 68, 68, 1)')
-        : values.map(() => 'rgba(16, 185, 129, 1)');
+    const rawData       = JSON.parse('{{ result_json|escapejs }}');
+    const isBiased      = JSON.parse('{{ bias_detected|yesno:"true,false"|escapejs }}');
+    const insightsData  = JSON.parse('{{ insights_json|escapejs }}');
+    const suggestData   = JSON.parse('{{ suggestions_json|escapejs }}');
+    const sensitiveCol  = '{{ sensitive|escapejs }}';
+    const targetCol     = '{{ target|escapejs }}';
+    const fairnessScore = parseFloat('{{ fairness_score }}') || 0;
 
-    const ctx = document.getElementById('biasChart').getContext('2d');
+    /* ── Chart.js ── */
+    const labels = Object.keys(rawData);
+    const values = Object.values(rawData);
 
-    new Chart(ctx, {
+    const barColors    = values.map(() => isBiased ? 'rgba(239,68,68,0.65)' : 'rgba(16,185,129,0.65)');
+    const borderColors = values.map(() => isBiased ? 'rgba(239,68,68,1)'    : 'rgba(16,185,129,1)');
+
+    new Chart(document.getElementById('biasChart').getContext('2d'), {
         type: 'bar',
         data: {
-            labels: labels,
+            labels,
             datasets: [{
                 label: 'Outcome Rate',
                 data: values,
@@ -448,47 +430,91 @@
             maintainAspectRatio: true,
             animation: { duration: 1400, easing: 'easeOutQuart' },
             plugins: {
-                legend: {
-                    labels: {
-                        color: '#94a3b8',
-                        font: { family: 'Inter', size: 12 },
-                        boxWidth: 14, boxHeight: 14, borderRadius: 4,
-                        useBorderRadius: true,
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(10, 10, 26, 0.92)',
-                    titleColor: '#f1f5f9',
-                    bodyColor: '#94a3b8',
-                    borderColor: 'rgba(255,255,255,0.08)',
-                    borderWidth: 1,
-                    cornerRadius: 10,
-                    padding: 12,
-                    titleFont: { family: 'Inter', weight: '600' },
-                    bodyFont: { family: 'Inter' },
-                }
+                legend: { labels: { color: '#94a3b8', font: { family: 'Inter', size: 12 }, boxWidth: 14, boxHeight: 14, borderRadius: 4, useBorderRadius: true } },
+                tooltip: { backgroundColor: 'rgba(10,10,26,0.92)', titleColor: '#f1f5f9', bodyColor: '#94a3b8', borderColor: 'rgba(255,255,255,0.08)', borderWidth: 1, cornerRadius: 10, padding: 12, titleFont: { family: 'Inter', weight: '600' }, bodyFont: { family: 'Inter' } }
             },
             scales: {
-                y: {
-                    beginAtZero: true,
-                    max: 1,
-                    grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
-                    ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, padding: 8 },
-                    border: { display: false },
-                },
-                x: {
-                    grid: { display: false },
-                    ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' }, padding: 8 },
-                    border: { display: false },
-                }
+                y: { beginAtZero: true, max: 1, grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false }, ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, padding: 8 }, border: { display: false } },
+                x: { grid: { display: false }, ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' }, padding: 8 }, border: { display: false } }
             }
         }
     });
 
     requestAnimationFrame(() => {
-        const score = parseFloat('{{ fairness_score }}') || 0;
-        document.getElementById('score-bar').style.width = Math.min(score, 100) + '%';
+        document.getElementById('score-bar').style.width = Math.min(fairnessScore, 100) + '%';
     });
+
+    /* ── Bias Simulation ── */
+    async function runSimulation() {
+        const btn = document.getElementById('sim-btn');
+        btn.innerHTML = '<span class="spinner"></span> Simulating\u2026';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+
+        try {
+            const resp = await fetch('/simulate/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({ sensitive: sensitiveCol, target: targetCol }),
+            });
+            const data = await resp.json();
+
+            document.getElementById('sim-orig-score').textContent = data.original_score + '%';
+            document.getElementById('sim-new-score').textContent  = data.simulated_score + '%';
+            document.getElementById('sim-message').textContent    = data.message;
+
+            const section = document.getElementById('sim-section');
+            section.classList.add('visible');
+            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Simulation Complete';
+        } catch (e) {
+            btn.textContent = 'Simulation failed';
+            btn.style.opacity = '1';
+        }
+    }
+
+    /* ── Download Report ── */
+    async function downloadReport() {
+        const btn = document.getElementById('dl-btn');
+        btn.innerHTML = '<span class="spinner"></span> Generating\u2026';
+        btn.disabled = true;
+        btn.style.opacity = '0.6';
+
+        try {
+            const resp = await fetch('/download-report/', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
+                body: JSON.stringify({
+                    sensitive: sensitiveCol,
+                    target: targetCol,
+                    fairness_score: fairnessScore,
+                    bias_detected: isBiased,
+                    result: rawData,
+                    insights: insightsData,
+                    suggestions: suggestData,
+                }),
+            });
+
+            const blob = await resp.blob();
+            const url  = URL.createObjectURL(blob);
+            const a    = document.createElement('a');
+            a.href     = url;
+            a.download = 'biasbuster_report.txt';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Downloaded';
+            setTimeout(() => {
+                btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download Report';
+                btn.disabled = false;
+                btn.style.opacity = '1';
+            }, 2000);
+        } catch (e) {
+            btn.textContent = 'Download failed';
+            btn.style.opacity = '1';
+        }
+    }
 </script>
 </body>
 </html>
