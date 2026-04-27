@@ -1,70 +1,493 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
-    <title>Bias Result</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Results — BiasBusters</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --bg-primary: #06060f;
+            --surface: rgba(255, 255, 255, 0.03);
+            --surface-hover: rgba(255, 255, 255, 0.06);
+            --border: rgba(255, 255, 255, 0.07);
+            --border-hover: rgba(255, 255, 255, 0.14);
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-muted: #64748b;
+            --indigo: #6366f1;
+            --cyan: #06b6d4;
+            --red: #ef4444;
+            --green: #10b981;
+            --indigo-glow: rgba(99, 102, 241, 0.35);
+            --cyan-glow: rgba(6, 182, 212, 0.25);
+            --radius: 20px;
+            --radius-sm: 12px;
+        }
+
+        html { scroll-behavior: smooth; }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            min-height: 100vh;
+            overflow-x: hidden;
+            line-height: 1.6;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            inset: 0;
+            background: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.035) 1px, transparent 0);
+            background-size: 32px 32px;
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        .orb { position: fixed; border-radius: 50%; filter: blur(100px); opacity: 0.45; pointer-events: none; z-index: 0; }
+        .orb-1 { width: 550px; height: 550px; background: radial-gradient(circle, var(--indigo-glow), transparent 70%); top: -12%; right: -5%; animation: orbF1 18s ease-in-out infinite; }
+        .orb-2 { width: 450px; height: 450px; background: radial-gradient(circle, var(--cyan-glow), transparent 70%); bottom: -8%; left: -6%; animation: orbF2 22s ease-in-out infinite; }
+        @keyframes orbF1 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(-40px,30px) scale(1.08)} }
+        @keyframes orbF2 { 0%,100%{transform:translate(0,0) scale(1)} 50%{transform:translate(30px,-20px) scale(1.05)} }
+
+        .container { max-width: 860px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
+
+        /* ── Nav ── */
+        nav {
+            position: sticky; top: 0; z-index: 100;
+            padding: 16px 24px;
+            background: rgba(6, 6, 15, 0.7);
+            backdrop-filter: blur(24px);
+            border-bottom: 1px solid var(--border);
+        }
+        .nav-inner { max-width: 1100px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; }
+        .nav-brand {
+            display: flex; align-items: center; gap: 10px;
+            font-weight: 700; font-size: 1.15rem;
+            text-decoration: none; color: var(--text-primary);
+        }
+        .nav-brand svg { flex-shrink: 0; }
+        .btn-ghost {
+            display: inline-flex; align-items: center; gap: 6px;
+            padding: 8px 16px; font-family: 'Inter', sans-serif;
+            font-size: 0.82rem; font-weight: 600;
+            color: var(--text-secondary); background: var(--surface);
+            border: 1px solid var(--border); border-radius: 10px;
+            cursor: pointer; text-decoration: none; transition: all 0.25s;
+        }
+        .btn-ghost:hover { border-color: var(--border-hover); color: var(--text-primary); background: var(--surface-hover); }
+
+        /* ── Page Header ── */
+        .page-header { padding: 48px 0 12px; text-align: center; }
+        .page-header h1 {
+            font-size: clamp(1.6rem, 4vw, 2.2rem);
+            font-weight: 800; letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #fff 0%, #a5b4fc 50%, #06b6d4 100%);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .page-header p { color: var(--text-muted); font-size: 0.92rem; margin-top: 8px; }
+
+        /* ── Glass Card ── */
+        .glass {
+            background: var(--surface); backdrop-filter: blur(40px);
+            border: 1px solid var(--border); border-radius: var(--radius);
+            padding: 32px; transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        .glass:hover { border-color: var(--border-hover); }
+
+        /* ── Metric Cards ── */
+        .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; padding: 28px 0; }
+        @media (max-width: 640px) { .metrics { grid-template-columns: 1fr; } }
+
+        .metric-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 16px; padding: 24px; text-align: center;
+            transition: all 0.3s;
+        }
+        .metric-card:hover { border-color: var(--border-hover); transform: translateY(-4px); box-shadow: 0 12px 40px rgba(0,0,0,0.3); }
+
+        .metric-label {
+            font-size: 0.72rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 10px;
+            display: flex; align-items: center; justify-content: center; gap: 6px;
+        }
+        .metric-value {
+            font-size: 1.35rem; font-weight: 700; color: var(--text-primary);
+            word-break: break-word;
+        }
+
+        .metric-card.score-card { border-color: rgba(99, 102, 241, 0.2); }
+        .metric-card.score-card .metric-value {
+            font-size: 2.2rem; font-weight: 900;
+            background: linear-gradient(135deg, var(--indigo), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;
+        }
+        .score-bar-track {
+            width: 100%; height: 6px; background: rgba(255,255,255,0.06);
+            border-radius: 3px; margin-top: 14px; overflow: hidden;
+        }
+        .score-bar-fill {
+            height: 100%; border-radius: 3px;
+            background: linear-gradient(90deg, var(--indigo), var(--cyan));
+            transition: width 1.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        /* ── Alert Banner ── */
+        .alert {
+            display: flex; align-items: center; gap: 14px;
+            padding: 18px 24px; border-radius: 14px;
+            font-weight: 600; font-size: 0.95rem;
+        }
+        .alert-icon {
+            width: 44px; height: 44px; border-radius: 12px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .alert-body p { margin-top: 4px; font-weight: 400; font-size: 0.85rem; opacity: 0.8; }
+
+        .alert-danger {
+            background: rgba(239, 68, 68, 0.06);
+            border: 1px solid rgba(239, 68, 68, 0.18);
+            color: var(--red);
+        }
+        .alert-danger .alert-icon { background: rgba(239, 68, 68, 0.12); }
+
+        .alert-success {
+            background: rgba(16, 185, 129, 0.06);
+            border: 1px solid rgba(16, 185, 129, 0.18);
+            color: var(--green);
+        }
+        .alert-success .alert-icon { background: rgba(16, 185, 129, 0.12); }
+
+        /* ── Group Results ── */
+        .group-results { margin-top: 28px; }
+        .group-results-title {
+            font-size: 0.75rem; font-weight: 600; text-transform: uppercase;
+            letter-spacing: 1.2px; color: var(--text-muted); margin-bottom: 14px;
+        }
+        .group-item {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 14px 18px;
+            background: rgba(255,255,255,0.02);
+            border-radius: 10px;
+            margin-bottom: 6px;
+            transition: background 0.2s;
+        }
+        .group-item:hover { background: rgba(255,255,255,0.04); }
+        .group-key { font-weight: 600; font-size: 0.92rem; }
+        .group-val {
+            font-family: 'Inter', monospace; font-weight: 700;
+            font-size: 0.95rem; color: var(--cyan);
+        }
+
+        /* ── Chart Section ── */
+        .chart-section { margin-top: 28px; }
+        .section-heading {
+            display: flex; align-items: center; gap: 10px;
+            font-size: 1.05rem; font-weight: 700; margin-bottom: 20px;
+        }
+        .section-heading svg { opacity: 0.5; }
+        .chart-wrap {
+            background: rgba(255,255,255,0.015); border-radius: 14px;
+            padding: 24px; position: relative;
+        }
+
+        /* ── Suggestions ── */
+        .suggestions { margin-top: 28px; }
+        .suggestion-list { display: flex; flex-direction: column; gap: 10px; }
+        .suggestion-item {
+            display: flex; align-items: flex-start; gap: 14px;
+            padding: 16px 20px;
+            background: rgba(255,255,255,0.02);
+            border: 1px solid var(--border);
+            border-radius: 14px;
+            transition: all 0.25s;
+        }
+        .suggestion-item:hover { border-color: var(--border-hover); background: rgba(255,255,255,0.035); }
+        .suggestion-icon {
+            width: 36px; height: 36px; border-radius: 10px;
+            display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+        }
+        .suggestion-icon.tip { background: rgba(234, 179, 8, 0.1); }
+        .suggestion-icon.ok { background: rgba(16, 185, 129, 0.1); }
+        .suggestion-text { font-size: 0.9rem; color: var(--text-secondary); line-height: 1.5; padding-top: 6px; }
+
+        /* ── Conclusion ── */
+        .conclusion {
+            margin-top: 28px; text-align: center;
+            padding: 32px; border-radius: 16px;
+        }
+        .conclusion-biased {
+            background: linear-gradient(135deg, rgba(239,68,68,0.05), rgba(239,68,68,0.02));
+            border: 1px solid rgba(239,68,68,0.15);
+        }
+        .conclusion-fair {
+            background: linear-gradient(135deg, rgba(16,185,129,0.05), rgba(16,185,129,0.02));
+            border: 1px solid rgba(16,185,129,0.15);
+        }
+        .conclusion h3 { font-size: 1.1rem; font-weight: 700; margin-bottom: 8px; }
+        .conclusion p { font-size: 0.9rem; color: var(--text-secondary); max-width: 500px; margin: 0 auto; }
+        .conclusion-biased h3 { color: var(--red); }
+        .conclusion-fair h3 { color: var(--green); }
+
+        /* ── Footer ── */
+        footer {
+            text-align: center; padding: 48px 24px 40px;
+            border-top: 1px solid var(--border); margin-top: 48px;
+            position: relative; z-index: 1;
+        }
+        footer p { font-size: 0.8rem; color: var(--text-muted); }
+        footer span {
+            background: linear-gradient(135deg, var(--indigo), var(--cyan));
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; font-weight: 700;
+        }
+
+        /* ── Animations ── */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(24px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+        .anim { opacity: 0; animation: fadeInUp 0.7s cubic-bezier(0.16,1,0.3,1) forwards; }
+        .d1 { animation-delay: .05s; } .d2 { animation-delay: .12s; } .d3 { animation-delay: .19s; }
+        .d4 { animation-delay: .26s; } .d5 { animation-delay: .33s; } .d6 { animation-delay: .40s; }
+        .d7 { animation-delay: .47s; } .d8 { animation-delay: .54s; } .d9 { animation-delay: .61s; }
+    </style>
 </head>
 <body>
 
-<h1>Bias Analysis Result</h1>
+<div class="orb orb-1"></div>
+<div class="orb orb-2"></div>
 
-<p><strong>Sensitive Column:</strong> {{ sensitive }}</p>
-<p><strong>Target Column:</strong> {{ target }}</p>
+<!-- Navigation -->
+<nav>
+    <div class="nav-inner">
+        <a href="/" class="nav-brand">
+            <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                <rect width="28" height="28" rx="8" fill="url(#g1)"/>
+                <path d="M8 14.5L12 18.5L20 10" stroke="#fff" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                <defs><linearGradient id="g1" x1="0" y1="0" x2="28" y2="28"><stop stop-color="#6366f1"/><stop offset="1" stop-color="#06b6d4"/></linearGradient></defs>
+            </svg>
+            BiasBusters
+        </a>
+        <a href="/" class="btn-ghost">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/></svg>
+            New Analysis
+        </a>
+    </div>
+</nav>
 
-<h2>Group Results:</h2>
-<ul>
-    {% for key, value in result.items %}
-        <li>{{ key }} : {{ value }}</li>
-    {% endfor %}
-</ul>
+<div class="container">
 
-<h2>Fairness Score:</h2>
-<p>{{ fairness_score }}%</p>
+    <!-- Header -->
+    <div class="page-header anim d1">
+        <h1>Analysis Results</h1>
+        <p>Here's what BiasBusters found in your dataset</p>
+    </div>
 
-{% if bias_detected %}
-    <h3 style="color:red;">⚠ Bias Detected</h3>
-{% else %}
-    <h3 style="color:green;">✅ No Significant Bias</h3>
-{% endif %}
-<h2>Bias Visualization</h2>
-<canvas id="biasChart" width="400" height="200"></canvas>
-<p><strong>Insight:</strong>
-{% if bias_detected %}
-    Significant disparity detected between groups.
-{% else %}
-    Outcomes are relatively balanced across groups.
-{% endif %}
-</p>
+    <!-- Metric Cards -->
+    <div class="metrics">
+        <div class="metric-card anim d2">
+            <div class="metric-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+                Sensitive Column
+            </div>
+            <div class="metric-value">{{ sensitive }}</div>
+        </div>
+        <div class="metric-card anim d3">
+            <div class="metric-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+                Target Column
+            </div>
+            <div class="metric-value">{{ target }}</div>
+        </div>
+        <div class="metric-card score-card anim d4">
+            <div class="metric-label">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                Fairness Score
+            </div>
+            <div class="metric-value" id="score-display">{{ fairness_score }}%</div>
+            <div class="score-bar-track">
+                <div class="score-bar-fill" id="score-bar" style="width: 0%"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bias Alert -->
+    <div class="anim d5">
+        {% if bias_detected %}
+        <div class="alert alert-danger">
+            <div class="alert-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+            </div>
+            <div>
+                <strong>Bias Detected</strong>
+                <p>Significant disparity found between demographic groups in this dataset.</p>
+            </div>
+        </div>
+        {% else %}
+        <div class="alert alert-success">
+            <div class="alert-icon">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
+            </div>
+            <div>
+                <strong>Fair Dataset</strong>
+                <p>No significant bias detected — outcomes appear balanced across groups.</p>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Group Results + Chart -->
+    <div class="glass anim d6" style="margin-top: 28px;">
+
+        <div class="group-results">
+            <div class="group-results-title">Group Outcome Rates</div>
+            {% for key, value in result.items %}
+            <div class="group-item">
+                <span class="group-key">{{ key }}</span>
+                <span class="group-val">{{ value }}</span>
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="chart-section">
+            <div class="section-heading">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20V10"/><path d="M18 20V4"/><path d="M6 20v-4"/></svg>
+                Bias Visualization
+            </div>
+            <div class="chart-wrap">
+                <canvas id="biasChart"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Suggestions -->
+    <div class="suggestions anim d7">
+        <div class="section-heading" style="margin-bottom: 16px;">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>
+            Recommendations
+        </div>
+        <div class="suggestion-list">
+            {% for suggestion in suggestions %}
+            <div class="suggestion-item">
+                {% if bias_detected %}
+                <div class="suggestion-icon tip">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 1 1 7.072 0l-.548.547A3.374 3.374 0 0 0 12 18.469c-.874 0-1.726.325-2.382.914l-.236.224"/></svg>
+                </div>
+                {% else %}
+                <div class="suggestion-icon ok">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                </div>
+                {% endif %}
+                <span class="suggestion-text">{{ suggestion }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Conclusion -->
+    <div class="anim d8">
+        {% if bias_detected %}
+        <div class="conclusion conclusion-biased">
+            <h3>Action Required</h3>
+            <p>This dataset shows meaningful disparities across the <strong>{{ sensitive }}</strong> attribute. Consider rebalancing your data or applying fairness-aware techniques before training any model.</p>
+        </div>
+        {% else %}
+        <div class="conclusion conclusion-fair">
+            <h3>Looking Good</h3>
+            <p>Your dataset shows balanced outcomes across the <strong>{{ sensitive }}</strong> attribute. Continue monitoring fairness as you iterate on your model.</p>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Footer -->
+<footer class="anim d9">
+    <p>Built with purpose by team <span>Fairlytics</span></p>
+</footer>
+
 <script>
-    const data = JSON.parse('{{ result_json|escapejs }}');
+    const rawData  = JSON.parse('{{ result_json|escapejs }}');
+    const isBiased = JSON.parse('{{ bias_detected|yesno:"true,false"|escapejs }}');
+    const labels   = Object.keys(rawData);
+    const values   = Object.values(rawData);
 
-    const labels = Object.keys(data);
-    const values = Object.values(data);
+    const barColors = isBiased
+        ? values.map(() => 'rgba(239, 68, 68, 0.65)')
+        : values.map(() => 'rgba(16, 185, 129, 0.65)');
+    const borderColors = isBiased
+        ? values.map(() => 'rgba(239, 68, 68, 1)')
+        : values.map(() => 'rgba(16, 185, 129, 1)');
 
     const ctx = document.getElementById('biasChart').getContext('2d');
-
-const isBiased = JSON.parse('{{ bias_detected|yesno:"true,false"|escapejs }}');
 
     new Chart(ctx, {
         type: 'bar',
         data: {
             labels: labels,
             datasets: [{
-                label: 'Outcome Comparison',
+                label: 'Outcome Rate',
                 data: values,
-                backgroundColor: isBiased ? 'red' : 'green',
-                borderColor: 'black',
-                borderWidth: 1
+                backgroundColor: barColors,
+                borderColor: borderColors,
+                borderWidth: 2,
+                borderRadius: 8,
+                borderSkipped: false,
+                maxBarThickness: 72,
             }]
         },
         options: {
+            responsive: true,
+            maintainAspectRatio: true,
+            animation: { duration: 1400, easing: 'easeOutQuart' },
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#94a3b8',
+                        font: { family: 'Inter', size: 12 },
+                        boxWidth: 14, boxHeight: 14, borderRadius: 4,
+                        useBorderRadius: true,
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(10, 10, 26, 0.92)',
+                    titleColor: '#f1f5f9',
+                    bodyColor: '#94a3b8',
+                    borderColor: 'rgba(255,255,255,0.08)',
+                    borderWidth: 1,
+                    cornerRadius: 10,
+                    padding: 12,
+                    titleFont: { family: 'Inter', weight: '600' },
+                    bodyFont: { family: 'Inter' },
+                }
+            },
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 1
+                    max: 1,
+                    grid: { color: 'rgba(255,255,255,0.04)', drawBorder: false },
+                    ticks: { color: '#64748b', font: { family: 'Inter', size: 11 }, padding: 8 },
+                    border: { display: false },
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#94a3b8', font: { family: 'Inter', size: 12, weight: '500' }, padding: 8 },
+                    border: { display: false },
                 }
             }
         }
+    });
+
+    requestAnimationFrame(() => {
+        const score = parseFloat('{{ fairness_score }}') || 0;
+        document.getElementById('score-bar').style.width = Math.min(score, 100) + '%';
     });
 </script>
 </body>

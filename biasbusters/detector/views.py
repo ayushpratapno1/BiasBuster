@@ -12,6 +12,10 @@ def index(request):
         if request.FILES.get('dataset'):
             file = request.FILES['dataset']
 
+            # 5MB limit
+            if file.size > 5 * 1024 * 1024:
+              return render(request, 'index.html', {'error': 'File too large. Please upload a file under 5MB.'})
+
             df = pd.read_csv(file)
 
             # Store data in session
