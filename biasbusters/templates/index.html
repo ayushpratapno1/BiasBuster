@@ -1,0 +1,36 @@
+<form method="POST" enctype="multipart/form-data">
+    {% csrf_token %}
+    <input type="file" name="dataset" accept=".csv" required>
+    <button type="submit">Upload</button>
+</form>
+
+{% if columns %}
+    <h2>Select Columns</h2>
+
+    <form method="POST">
+        {% csrf_token %}
+
+        <input type="hidden" name="process" value="1">
+        <input type="hidden" name="file_path" value="{{ file_path }}">
+
+        <label>Sensitive Column:</label>
+        <select name="sensitive">
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+
+        <label>Target Column:</label>
+        <select name="target">
+            {% for col in columns %}
+                <option value="{{ col }}">{{ col }}</option>
+            {% endfor %}
+        </select>
+
+        <br><br>
+
+        <button type="submit">Analyze Bias</button>
+    </form>
+{% endif %}

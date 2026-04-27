@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Bias Result</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<h1>Bias Analysis Result</h1>
+
+<p><strong>Sensitive Column:</strong> {{ sensitive }}</p>
+<p><strong>Target Column:</strong> {{ target }}</p>
+
+<h2>Group Results:</h2>
+<ul>
+    {% for key, value in result.items %}
+        <li>{{ key }} : {{ value }}</li>
+    {% endfor %}
+</ul>
+
+<h2>Fairness Score:</h2>
+<p>{{ fairness_score }}%</p>
+
+{% if bias_detected %}
+    <h3 style="color:red;">⚠ Bias Detected</h3>
+{% else %}
+    <h3 style="color:green;">✅ No Significant Bias</h3>
+{% endif %}
+<h2>Bias Visualization</h2>
+<canvas id="biasChart" width="400" height="200"></canvas>
+<p><strong>Insight:</strong>
+{% if bias_detected %}
+    Significant disparity detected between groups.
+{% else %}
+    Outcomes are relatively balanced across groups.
+{% endif %}
+</p>
+<script>
+    const data = JSON.parse('{{ result_json|escapejs }}');
+
+    const labels = Object.keys(data);
+    const values = Object.values(data);
+
+    const ctx = document.getElementById('biasChart').getContext('2d');
+
+const isBiased = JSON.parse('{{ bias_detected|yesno:"true,false"|escapejs }}');
+
+    new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Outcome Comparison',
+                data: values,
+                backgroundColor: isBiased ? 'red' : 'green',
+                borderColor: 'black',
+                borderWidth: 1
+            }]
+        },
+        options: {
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    max: 1
+                }
+            }
+        }
+    });
+</script>
+</body>
+</html>
