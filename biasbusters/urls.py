@@ -9,6 +9,7 @@ urlpatterns = [
     path('', views.index, name='index'),
     path('simulate/', views.simulate, name='simulate'),
     path('download-report/', views.download_report, name='download_report'),
+    path('ai-insights/', views.ai_insights, name='ai_insights'),
 ]
 
 if settings.DEBUG:

@@ -1,12 +1,18 @@
 import base64
 import io
 import json
+import os
 import zlib
 
 import pandas as pd
+import google.generativeai as genai
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
+
+_GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
+if _GEMINI_KEY:
+    genai.configure(api_key=_GEMINI_KEY)
 
 SENSITIVE_KEYWORDS = [
     'gender', 'sex', 'age', 'race', 'caste', 'religion',
@@ -287,3 +293,99 @@ def download_report(request):
     resp = HttpResponse('\n'.join(lines), content_type='text/plain')
     resp['Content-Disposition'] = 'attachment; filename="biasbuster_report.txt"'
     return resp
+
+
+# ─── AJAX: AI-powered insights ──────────────────────────────
+
+_AI_PROMPT_TEMPLATE = (
+    'You are a data fairness expert explaining bias analysis results to a '
+    'general audience.\n\n'
+    'ANALYSIS RESULTS:\n'
+    '- Sensitive attribute analyzed: {sensitive}\n'
+    '- Target variable: {target}\n'
+    '- Bias detected: {bias_status}\n'
+    '- Fairness score: {fairness_score}% (100% = perfectly fair)\n'
+    '- Group outcome rates:\n{group_rates}\n\n'
+    'Provide a clear, structured analysis using these exact section headers:\n\n'
+    '**What This Means**\n'
+    '2-3 sentences explaining the findings in plain language.\n\n'
+    '**Real-World Impact**\n'
+    '2-3 concrete consequences if this bias exists in a decision-making system.\n\n'
+    '**Why This Might Exist**\n'
+    '2-3 likely reasons for this pattern in the data.\n\n'
+    '**What You Can Do**\n'
+    '3-4 practical, actionable steps to mitigate this.\n\n'
+    '**Bottom Line**\n'
+    'One clear summary sentence.\n\n'
+    'Rules:\n'
+    '- Use plain language, no jargon\n'
+    '- Be specific to the actual columns and groups shown above\n'
+    '- If no bias was detected, focus on why that is positive and how to '
+    'maintain fairness\n'
+    '- Stay under 250 words total'
+)
+
+
+@require_POST
+def ai_insights(request):
+    if not _GEMINI_KEY:
+        return JsonResponse({
+            'insights': (
+                '**AI Service Unavailable**\n'
+                'The GEMINI_API_KEY environment variable is not configured. '
+                'Please add it to your deployment settings to enable this feature.'
+            ),
+            'summary': 'AI insights unavailable \u2014 API key missing.',
+        })
+
+    try:
+        body = json.loads(request.body)
+    except (json.JSONDecodeError, ValueError):
+        return JsonResponse({'error': 'Invalid request.'}, status=400)
+
+    sensitive = body.get('sensitive', 'N/A')
+    target = body.get('target', 'N/A')
+    result = body.get('result', {})
+    fairness_score = body.get('fairness_score', 0)
+    bias_detected = body.get('bias_detected', False)
+
+    group_rates = '\n'.join(
+        f'  {group}: {round(value, 4)}' for group, value in result.items()
+    )
+
+    prompt = _AI_PROMPT_TEMPLATE.format(
+        sensitive=sensitive,
+        target=target,
+        bias_status='Yes' if bias_detected else 'No',
+        fairness_score=fairness_score,
+        group_rates=group_rates,
+    )
+
+    try:
+        model = genai.GenerativeModel('gemini-2.5-flash')
+        response = model.generate_content(prompt)
+        text = response.text.strip()
+
+        summary = ''
+        if '**Bottom Line**' in text:
+            after = text.split('**Bottom Line**', 1)[1].strip()
+            for line in after.split('\n'):
+                if line.strip():
+                    summary = line.strip()
+                    break
+
+        return JsonResponse({
+            'insights': text,
+            'summary': summary or 'Analysis complete.',
+        })
+
+    except Exception:
+        return JsonResponse({
+            'insights': (
+                '**AI Analysis Unavailable**\n'
+                'We could not generate AI insights at this time. '
+                'This may be due to a temporary API issue. '
+                'Please try again shortly.'
+            ),
+            'summary': 'AI insights temporarily unavailable.',
+        })
