@@ -402,6 +402,8 @@
     const sensitiveCol  = '{{ sensitive|escapejs }}';
     const targetCol     = '{{ target|escapejs }}';
     const fairnessScore = parseFloat('{{ fairness_score }}') || 0;
+    const simOrigScore  = parseFloat('{{ sim_original_score }}') || 0;
+    const simMessage    = '{{ sim_message|escapejs }}';
 
     /* ── Chart.js ── */
     const labels = Object.keys(rawData);
@@ -444,34 +446,24 @@
         document.getElementById('score-bar').style.width = Math.min(fairnessScore, 100) + '%';
     });
 
-    /* ── Bias Simulation ── */
+    /* ── Bias Simulation (precomputed, no network call) ── */
     async function runSimulation() {
         const btn = document.getElementById('sim-btn');
         btn.innerHTML = '<span class="spinner"></span> Simulating\u2026';
         btn.disabled = true;
         btn.style.opacity = '0.6';
 
-        try {
-            const resp = await fetch('/simulate/', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json', 'X-CSRFToken': csrfToken },
-                body: JSON.stringify({ sensitive: sensitiveCol, target: targetCol }),
-            });
-            const data = await resp.json();
+        await new Promise(r => setTimeout(r, 500));
 
-            document.getElementById('sim-orig-score').textContent = data.original_score + '%';
-            document.getElementById('sim-new-score').textContent  = data.simulated_score + '%';
-            document.getElementById('sim-message').textContent    = data.message;
+        document.getElementById('sim-orig-score').textContent = simOrigScore + '%';
+        document.getElementById('sim-new-score').textContent  = '100%';
+        document.getElementById('sim-message').textContent    = simMessage;
 
-            const section = document.getElementById('sim-section');
-            section.classList.add('visible');
-            section.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        const section = document.getElementById('sim-section');
+        section.classList.add('visible');
+        section.scrollIntoView({ behavior: 'smooth', block: 'center' });
 
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Simulation Complete';
-        } catch (e) {
-            btn.textContent = 'Simulation failed';
-            btn.style.opacity = '1';
-        }
+        btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Simulation Complete';
     }
 
     /* ── Download Report ── */

@@ -1,9 +1,12 @@
+import base64
+import io
+import json
+import zlib
+
 import pandas as pd
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
-import json
-import io
 
 SENSITIVE_KEYWORDS = [
     'gender', 'sex', 'age', 'race', 'caste', 'religion',
@@ -12,6 +15,16 @@ SENSITIVE_KEYWORDS = [
 ]
 
 SAMPLE_THRESHOLD = 5000
+
+
+def _compress_data(json_str):
+    """Compress a JSON string for safe transport in a hidden form field."""
+    return base64.urlsafe_b64encode(zlib.compress(json_str.encode())).decode()
+
+
+def _decompress_data(payload):
+    """Reverse of _compress_data."""
+    return zlib.decompress(base64.urlsafe_b64decode(payload)).decode()
 
 
 def _detect_sensitive(columns):
@@ -92,7 +105,12 @@ def index(request):
                     'error': 'File exceeds the 5 MB limit. Please upload a smaller file.'
                 })
 
-            df = pd.read_csv(file)
+            try:
+                df = pd.read_csv(file)
+            except Exception:
+                return render(request, 'index.html', {
+                    'error': 'Could not parse the file. Please ensure it is a valid CSV.'
+                })
 
             sampled = False
             original_rows = int(len(df))
@@ -100,7 +118,6 @@ def index(request):
                 df = df.sample(n=SAMPLE_THRESHOLD, random_state=42)
                 sampled = True
 
-            request.session['data'] = df.to_json()
             columns = df.columns.tolist()
             summary = _build_summary(df)
             suggested = _detect_sensitive(columns)
@@ -113,13 +130,31 @@ def index(request):
                 'sampled': sampled,
                 'original_rows': original_rows,
                 'sample_size': SAMPLE_THRESHOLD,
+                'dataset_json': _compress_data(df.to_json()),
             })
 
         # STEP 2: Analyse
         elif request.POST.get('process'):
+            payload = request.POST.get('dataset_json')
+            if not payload:
+                return render(request, 'index.html', {
+                    'error': 'Dataset missing. Please upload your CSV again.'
+                })
+
             sensitive = request.POST.get('sensitive')
             target = request.POST.get('target')
-            df = pd.read_json(io.StringIO(request.session.get('data')))
+
+            try:
+                df = pd.read_json(io.StringIO(_decompress_data(payload)))
+            except Exception:
+                return render(request, 'index.html', {
+                    'error': 'Dataset could not be loaded. Please re-upload your CSV.'
+                })
+
+            if sensitive not in df.columns or target not in df.columns:
+                return render(request, 'index.html', {
+                    'error': 'Selected columns not found in the dataset. Please re-upload.'
+                })
 
             result = df.groupby(sensitive)[target].mean()
             result_dict = result.to_dict()
@@ -146,6 +181,14 @@ def index(request):
                     "Run periodic bias audits to maintain fairness over time",
                 ]
 
+            sim_mean = round(float(df[target].mean()), 4)
+            sim_std = round(float(df[target].std()), 4)
+            sim_message = (
+                f'Without grouping by "{sensitive}", the overall {target} mean '
+                f'is {sim_mean} (std: {sim_std}). Inter-group disparity is '
+                f'eliminated, yielding a fairness score of 100%.'
+            )
+
             summary = _build_summary(df)
 
             return render(request, 'result.html', {
@@ -161,6 +204,10 @@ def index(request):
                 'suggestions_json': json.dumps(suggestions),
                 'summary': summary,
                 'summary_json': json.dumps(summary),
+                'sim_original_score': fairness_score,
+                'sim_mean': sim_mean,
+                'sim_std': sim_std,
+                'sim_message': sim_message,
             })
 
     return render(request, 'index.html')
@@ -170,30 +217,37 @@ def index(request):
 
 @require_POST
 def simulate(request):
-    body = json.loads(request.body)
-    sensitive, target = body['sensitive'], body['target']
+    try:
+        body = json.loads(request.body)
+        sensitive, target = body['sensitive'], body['target']
+        dataset_payload = body.get('dataset_json', '')
 
-    df = pd.read_json(io.StringIO(request.session.get('data')))
+        if not dataset_payload:
+            return JsonResponse({'error': 'No dataset provided.'}, status=400)
 
-    orig = df.groupby(sensitive)[target].mean().to_dict()
-    orig_vals = list(orig.values())
-    orig_mx, orig_mn = max(orig_vals), min(orig_vals)
-    orig_score = round((orig_mn / orig_mx) * 100, 2) if orig_mx else 0
+        df = pd.read_json(io.StringIO(_decompress_data(dataset_payload)))
 
-    sim_mean = round(float(df[target].mean()), 4)
-    sim_std = round(float(df[target].std()), 4)
+        orig = df.groupby(sensitive)[target].mean().to_dict()
+        orig_vals = list(orig.values())
+        orig_mx, orig_mn = max(orig_vals), min(orig_vals)
+        orig_score = round((orig_mn / orig_mx) * 100, 2) if orig_mx else 0
 
-    return JsonResponse({
-        'original_score': orig_score,
-        'simulated_score': 100.0,
-        'simulated_mean': sim_mean,
-        'simulated_std': sim_std,
-        'message': (
-            f'Without grouping by "{sensitive}", the overall {target} mean '
-            f'is {sim_mean} (std: {sim_std}). Inter-group disparity is '
-            f'eliminated, yielding a fairness score of 100%.'
-        ),
-    })
+        sim_mean = round(float(df[target].mean()), 4)
+        sim_std = round(float(df[target].std()), 4)
+
+        return JsonResponse({
+            'original_score': orig_score,
+            'simulated_score': 100.0,
+            'simulated_mean': sim_mean,
+            'simulated_std': sim_std,
+            'message': (
+                f'Without grouping by "{sensitive}", the overall {target} mean '
+                f'is {sim_mean} (std: {sim_std}). Inter-group disparity is '
+                f'eliminated, yielding a fairness score of 100%.'
+            ),
+        })
+    except Exception:
+        return JsonResponse({'error': 'Simulation failed.'}, status=400)
 
 
 # ─── AJAX: Download report ───────────────────────────────────
