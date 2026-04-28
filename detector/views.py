@@ -10,7 +10,7 @@ from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
 
-_GEMINI_KEY = os.environ.get('GEMINI_API_KEY', '')
+_GEMINI_KEY = os.environ.get('GEMINI_API_KEY')
 if _GEMINI_KEY:
     genai.configure(api_key=_GEMINI_KEY)
 
@@ -379,13 +379,11 @@ def ai_insights(request):
             'summary': summary or 'Analysis complete.',
         })
 
-    except Exception:
+    except Exception as exc:
         return JsonResponse({
             'insights': (
                 '**AI Analysis Unavailable**\n'
-                'We could not generate AI insights at this time. '
-                'This may be due to a temporary API issue. '
-                'Please try again shortly.'
+                f'{type(exc).__name__}: {exc}'
             ),
             'summary': 'AI insights temporarily unavailable.',
         })
