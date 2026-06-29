@@ -9,8 +9,13 @@ import google.generativeai as genai
 from django.shortcuts import render
 from django.http import JsonResponse, HttpResponse
 from django.views.decorators.http import require_POST
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
 
-_GEMINI_KEY = os.environ.get('GEMINI_API_KEY')
+_GEMINI_KEY = os.getenv('GEMINI_API_KEY')
 if _GEMINI_KEY:
     genai.configure(api_key=_GEMINI_KEY)
 
